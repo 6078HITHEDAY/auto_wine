@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "auto_wine",
+  "version": "${version}",
+  "name": "auto_wine",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/auto_wine/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "cn.myflycat.auto_wine.client.Auto_wineDataGenerator"
+    ],
+    "client": [
+      "cn.myflycat.auto_wine.client.Auto_wineClient"
+    ],
+    "main": [
+      "cn.myflycat.auto_wine.Auto_wine"
+    ]
+  },
+  "mixins": [
+    "auto_wine.mixins.json",
+    {
+      "config": "auto_wine.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
