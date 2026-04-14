@@ -14,6 +14,14 @@
   - `feature/AutoWineFeatureRegistry`
 - [x] 补充 `README.md`
 - [x] 补充 `fabric.mod.json` 的基础描述信息
+- [x] 实现决策系统骨架（状态机 + 执行层抽象）
+  - `decision/DecisionState`（ACTIVE / DEGRADED / PENDING_RESUME）
+  - `decision/ExecutionLayer`（Baritone 执行层接口）
+  - `decision/DecisionGoal` / `DecisionPlanner` / `DecisionPlan` / `DecisionAction`
+  - `decision/DecisionGoalRegistry`、`DefaultDecisionPlanner`
+  - `client/decision/DecisionRuntime`（降级/探测/任务边界恢复）
+  - `client/decision/goal/ContainerSnapshotGoal`、`IdleWatchGoal`
+  - `client/AutoWineDecisionFeature`（已注册到客户端框架，接入 tick 驱动）
 
 ## 2. 当前基线
 
@@ -37,6 +45,8 @@
 - [x] 明确模块分层与目录约定
 - [x] 统一功能模块的注册、启停与生命周期
 - [x] 为调试功能增加开关
+- [x] 决策系统三层模型（扫描 / 决策 / 执行）骨架落地
+- [x] 执行层抽象（`ExecutionLayer`）与降级/恢复状态机（`DecisionRuntime`）
 
 ### 阶段 B：物品 / 容器扫描
 
@@ -61,6 +71,7 @@
 - [ ] 支持缺料提示
 - [ ] 支持候选配方排序
 - [ ] 为模糊匹配和替代材料保留扩展点
+- [ ] **验收点（降级兼容）**：匹配逻辑在 `DecisionState.DEGRADED` 下可独立运行，不依赖执行层
 
 ### 阶段 E：自动化操作
 
@@ -69,6 +80,10 @@
 - [ ] 将匹配结果转换为操作序列
 - [ ] 先实现低风险、可回退的最小闭环流程
 - [ ] 预留暂停 / 中止机制
+- [ ] 实现 `ExecutionLayer` 接口（Baritone 绑定）
+- [ ] **验收点（降级）**：`ExecutionLayer` 抛出首个异常后，`DecisionRuntime` 立即切换为 `DEGRADED`，扫描与本地决策继续运行
+- [ ] **验收点（探测）**：降级后每 200 tick 自动探测 `ExecutionLayer.isAvailable()`，成功则进入 `PENDING_RESUME`
+- [ ] **验收点（恢复）**：`PENDING_RESUME` 状态下，仅在当前 goal 到达任务边界（`isAtBoundary() == true`）后才切回 `ACTIVE`
 
 ### 阶段 F：安全保护
 
@@ -77,6 +92,7 @@
 - [ ] 增加场景校验，避免误操作
 - [ ] 增加错误状态下的自动停止机制
 - [ ] 避免在高风险界面执行自动化
+- [ ] **验收点（风控）**：`DecisionRuntime` 状态机在降级/恢复切换时均记录日志，任何切换不触发中途操作中断
 
 ### 阶段 G：测试与验证
 
