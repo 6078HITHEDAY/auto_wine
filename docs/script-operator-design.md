@@ -677,7 +677,65 @@ HUD 是运行时提示层，用于展示脚本执行状态。
 
 ---
 
-## 17. 结论
+## 17. 决策运行时状态机（DecisionRuntime）
+
+`DecisionRuntime` 是连接"本地决策层"与"执行层（如 Baritone）"的核心组件，
+采用显式三状态有限状态机保证执行层的可用性不成为系统单点故障。
+
+### 17.1 状态定义
+
+| 状态 | 含义 |
+|------|------|
+| `ACTIVE` | 执行层（Baritone）健在，接受并转发计划 |
+| `DEGRADED` | 执行层已故障，仅运行扫描 + 本地决策；后台每 200 tick 探测一次 |
+| `PENDING_RESUME` | 探测成功，等待当前 goal 到达任务边界再切回 ACTIVE |
+
+### 17.2 状态转换规则
+
+```
+ACTIVE ──(ExecutionLayer.execute 抛出异常)──> DEGRADED
+DEGRADED ──(探测成功 && 当前 goal 在任务边界)──> ACTIVE
+DEGRADED ──(探测成功 && 当前 goal 不在任务边界)──> PENDING_RESUME
+PENDING_RESUME ──(goal.isAtBoundary() == true)──> ACTIVE
+```
+
+### 17.3 关键约定
+
+- **首次异常即降级**：`execute()` 抛出任何异常立即触发降级，不重试。
+- **降级后持续运行**：DEGRADED 模式下仍执行 `DecisionPlanner.plan()`，本地决策不中断。
+- **后台探测**：每 200 tick（约 10 秒）调用 `ExecutionLayer.isAvailable()`；
+  探测成功时进入 `PENDING_RESUME`，不立即切换。
+- **任务边界切换**：PENDING_RESUME 状态下，只有当前 goal 的
+  `isCompleted() || isFailed() || isStopped()` 为 `true` 时，才切回 ACTIVE，
+  避免执行层在任务中途抖动。
+- **日志审计**：每次状态切换均在 `AutoWineFramework.LOGGER` 记录，便于排查。
+
+### 17.4 ExecutionLayer 接口约定
+
+实现 `ExecutionLayer` 的组件（如 Baritone 绑定层）须遵守：
+
+- `isAvailable()`：返回执行层是否已加载且就绪；不得抛出异常。
+- `execute(plan, context)`：提交计划执行；遇到不可恢复故障时抛出 `RuntimeException`。
+- `interrupt()`：中断当前执行；**不得抛出异常**。
+- `reset()`：重置内部状态为初始就绪状态；**不得抛出异常**。
+
+### 17.5 与脚本操作器的关系
+
+`DecisionRuntime` 位于执行管线的"执行"环节：
+
+```
+感知（ContainerScanFeature）
+  → 决策（DecisionPlanner + DecisionGoal）
+  → 执行（ExecutionLayer / DEGRADED 本地执行）
+  → 反馈（日志 / HUD，待实现）
+```
+
+DEGRADED 模式下，感知与决策层不受影响；仅执行层降级为"计划生成但不下发"。
+这确保配方匹配、容器扫描等阶段 D 的功能在无 Baritone 时也能正常开发和测试。
+
+---
+
+## 18. 结论
 
 脚本操作器在 `auto_wine` 中应被定义为：
 

@@ -25,10 +25,15 @@ public final class AutoWineClientFramework {
         if (AutoWineFeatureRegistry.get(ContainerScanFeature.FEATURE_ID) == null) {
             AutoWineFeatureRegistry.register(ContainerScanFeature.instance());
         }
+
+        if (AutoWineFeatureRegistry.get(AutoWineDecisionFeature.FEATURE_ID) == null) {
+            AutoWineFeatureRegistry.register(AutoWineDecisionFeature.instance());
+        }
     }
 
     public static boolean isInitialized() {
         return initialized;
     }
 }
+
 
