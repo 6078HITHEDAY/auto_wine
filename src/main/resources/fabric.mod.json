@@ -3,8 +3,10 @@
   "id": "auto_wine",
   "version": "${version}",
   "name": "auto_wine",
-  "description": "",
-  "authors": [],
+  "description": "用于客户端自动化、配方识别和数据管理的 Fabric 模组骨架。",
+  "authors": [
+    "myflycat"
+  ],
   "contact": {},
   "license": "All-Rights-Reserved",
   "icon": "assets/auto_wine/icon.png",

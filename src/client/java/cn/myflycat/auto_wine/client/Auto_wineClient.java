@@ -6,5 +6,6 @@ public class Auto_wineClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        AutoWineClientFramework.initialize();
     }
 }
